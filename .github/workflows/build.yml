@@ -32,6 +32,11 @@ jobs:
       - name: Set version
         run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
 
+      - name: Lint and test
+        run: |
+          npm run lint
+          npm test
+
       - name: Inject settings
         env:
           GH_REPO: ${{ github.repository }}
@@ -39,11 +44,6 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
           WEB_CLIENT_ID: ${{ vars.WEB_CLIENT_ID }}
         run: node scripts/inject-settings.js
-
-      - name: Lint and test
-        run: |
-          npm run lint
-          npm test
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
