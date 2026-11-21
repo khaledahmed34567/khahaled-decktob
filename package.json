@@ -1,0 +1,104 @@
+{
+  "name": "khaled-ahmed-desktop",
+  "productName": "Khaled Ahmed",
+  "version": "1.0.0",
+  "description": "Khaled Ahmed desktop app",
+  "main": "main.js",
+  "author": "Khaled Ahmed <136940127+khaledahmed34567@users.noreply.github.com>",
+  "homepage": "https://github.com/khaledahmed34567/khahaled-decktob",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "lint": "node --check main.js preload.js scripts/inject-settings.js tests/branding.test.js tests/inject.test.js && node -e \"const fs=require('fs'),vm=require('vm'),h=fs.readFileSync('www/index.html','utf8');for(const m of h.matchAll(/<script(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/script>/gi))new vm.Script(m[1]);console.log('Lint OK')\"",
+    "test": "node --test tests/*.test.js",
+    "electron:start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.khaledahmed.desktop",
+    "productName": "Khaled Ahmed",
+    "copyright": "Khaled Ahmed",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "www/**",
+      "build/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "KhaledAhmed-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Khaled Ahmed",
+      "installerSidebar": "build/side_banner.bmp",
+      "uninstallerSidebar": "build/side_banner.bmp",
+      "installerHeader": "build/header_logo.bmp",
+      "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities",
+      "artifactName": "KhaledAhmed-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "build/icon.png",
+      "executableName": "khaled-ahmed-desktop",
+      "category": "Utility",
+      "maintainer": "Khaled Ahmed <136940127+khaledahmed34567@users.noreply.github.com>",
+      "artifactName": "KhaledAhmed-linux.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "khaledahmed34567",
+        "repo": "khahaled-decktob",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
