@@ -1,0 +1,81 @@
+name: Build Store Package
+'on':
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  store:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-node@v5
+      with:
+        node-version: '22'
+    - name: Prepare Store-only manifest and updater guard
+      shell: bash
+      run: 'node <<''JS''
+
+        const fs=require(''fs'');
+
+        let s=fs.readFileSync(''main.js'',''utf8'');
+
+        const old=''if (!app.isPackaged) return;'';
+
+        if(s.split(old).length!==2) throw new Error(''Updater marker changed; review required'');
+
+        s=s.replace(old,''if (!app.isPackaged || process.windowsStore) return;'');
+
+        fs.writeFileSync(''main.js'',s);
+
+        const p=JSON.parse(fs.readFileSync(''package.json'',''utf8''));
+
+        p.dependencies=p.dependencies||{};p.devDependencies=p.devDependencies||{};
+
+        delete p.dependencies.express;
+
+        p.dependencies[''electron-updater'']=''^6.3.9'';
+
+        p.devDependencies.electron=''33.2.1'';p.devDependencies[''electron-builder'']=''25.1.8'';
+
+        p.version=''1.0.''+process.env.GITHUB_RUN_NUMBER;
+
+        p.build={...p.build,...{"win":{"target":[{"target":"appx","arch":["x64"]}],"artifactName":"${productName}-Store.${ext}"},"appx":{"applicationId":"App","identityName":"sarmad.eg.KhaledAhmedDesktop","publisher":"CN=CDF97DF2-E0EE-4A3C-A2C7-45354751C35D","publisherDisplayName":"sarmad.eg","displayName":"Khaled
+        Ahmed Desktop","backgroundColor":"#000000","languages":["ar","en-US"]},"publish":null},win:{...p.build.win,...{"win":{"target":[{"target":"appx","arch":["x64"]}],"artifactName":"${productName}-Store.${ext}"},"appx":{"applicationId":"App","identityName":"sarmad.eg.KhaledAhmedDesktop","publisher":"CN=CDF97DF2-E0EE-4A3C-A2C7-45354751C35D","publisherDisplayName":"sarmad.eg","displayName":"Khaled
+        Ahmed Desktop","backgroundColor":"#000000","languages":["ar","en-US"]},"publish":null}.win}};
+
+        fs.writeFileSync(''package.json'',JSON.stringify(p,null,2));
+
+
+        JS
+
+        '
+    - name: Generate branded Store tiles
+      shell: pwsh
+      run: "Add-Type -AssemblyName System.Drawing\nNew-Item -ItemType Directory -Force build/appx | Out-Null\n$src = [System.Drawing.Image]::FromFile((Resolve-Path\
+        \ build/icon.png))\nforeach ($item in @(@('StoreLogo.png',50,50),@('Square44x44Logo.png',44,44),@('Square150x150Logo.png',150,150),@('Wide310x150Logo.png',310,150),@('Square310x310Logo.png',310,310)))\
+        \ {\n  $w=[int]$item[1]; $h=[int]$item[2]\n  $bmp=New-Object System.Drawing.Bitmap($w,$h)\n  $g=[System.Drawing.Graphics]::FromImage($bmp)\n  $g.Clear([System.Drawing.Color]::Black)\n\
+        \  $g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic\n  $side=[int]([Math]::Min($w,$h)*0.8)\n  $g.DrawImage($src,[int](($w-$side)/2),[int](($h-$side)/2),$side,$side)\n\
+        \  $bmp.Save((Join-Path $pwd ('build/appx/'+$item[0])),[System.Drawing.Imaging.ImageFormat]::Png)\n  $g.Dispose(); $bmp.Dispose()\n}\n$src.Dispose()"
+    - name: Install dependencies
+      run: npm install --no-audit --no-fund
+      shell: bash
+    - name: Inject desktop settings
+      shell: bash
+      env:
+        GH_REPO: ${{ github.repository }}
+        BUILD_NO: ${{ github.run_number }}
+        SITE_URL: ${{ vars.SITE_URL }}
+        WEB_CLIENT_ID: ${{ vars.WEB_CLIENT_ID }}
+      run: node scripts/inject-settings.js
+    - name: Build unsigned package for Store signing only
+      shell: bash
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      run: npx electron-builder --win appx --x64 --publish never
+    - name: Upload Store package
+      uses: actions/upload-artifact@v5
+      with:
+        name: store-package
+        path: dist/*.appx
+        if-no-files-found: error
